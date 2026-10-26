@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>교사연수 서명</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@600;700&display=swap">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f5f7f9; --surface:#ffffff; --ink:#18212e; --muted:#5b6676; --line:#dbe1e8;
+  --accent:#1f4f7a; --accent-soft:#e3edf6; --seal:#b3261e; --seal-soft:#fbe9e7;
+  --ok:#1e6b45; --ok-soft:#e2f2e9; --warn:#8a5a00; --warn-soft:#fbf1dc; --paper:#ffffff;
+  --f-display:"Noto Serif KR","Nanum Myeongjo",serif;
+  --f-body:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#11161d; --surface:#18202a; --ink:#e6ebf1; --muted:#9aa6b5; --line:#2a3542;
+  --accent:#8fb9e0; --accent-soft:#1d2d3d; --seal:#f08a80; --seal-soft:#3a1f1d;
+  --ok:#7fd1a5; --ok-soft:#183026; --warn:#f0c46a; --warn-soft:#352a14; --paper:#f3f4f6; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65}
+.wrap{max-width:860px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+header.top{display:flex;flex-direction:column;gap:6px;border-bottom:2px solid var(--ink);padding-bottom:16px}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:500}
+h1{font-family:var(--f-display);font-size:clamp(22px,4.4vw,30px);line-height:1.3;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:16px;margin:0;font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:4px 18px;color:var(--muted);font-size:13px}
+.meta b{color:var(--ink);font-weight:500}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;list-style:none;margin:0;padding:0}
+.steps button{width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;padding:10px 12px;font:inherit;font-size:13px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.steps button:disabled{cursor:not-allowed;opacity:.55}
+.steps .n{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;font-weight:600}
+.steps button[aria-current="step"]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.steps button.done{color:var(--ok)}
+.steps button.done .n{background:var(--ok);color:var(--surface);border-color:var(--ok)}
+.steps .lbl{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.steps .lbl small{font-size:11px;opacity:.85}
+section.panel{display:flex;flex-direction:column;gap:16px}
+.lead{color:var(--muted);margin:0}
+.list{display:flex;flex-direction:column;gap:12px}
+.mod{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.mod.read{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.mod header{display:flex;gap:12px;align-items:baseline}
+.mod .no{font-family:var(--f-display);color:var(--accent);font-weight:700;font-size:15px;flex:none}
+.mod ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.mod .ex{background:var(--warn-soft);border-radius:6px;padding:10px 12px;font-size:14px}
+.mod .ex b{color:var(--warn)}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted);cursor:pointer;align-self:flex-start}
+.chk input{width:18px;height:18px;accent-color:var(--ok)}
+.mod.read .chk{color:var(--ok);font-weight:500}
+.bar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.bar .st{font-size:14px;color:var(--muted)}
+.btn{font:inherit;font-size:15px;font-weight:500;border-radius:8px;padding:10px 18px;border:1px solid var(--accent);background:var(--accent);color:var(--surface);cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.seal{background:var(--seal);border-color:var(--seal)}
+.btn.sm{font-size:13px;padding:6px 12px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.q fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.q legend{font-weight:600;margin-bottom:6px;padding:0}
+.q label{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border-radius:6px;cursor:pointer}
+.q label:hover{background:var(--accent-soft)}
+.q input{margin-top:5px;accent-color:var(--accent)}
+.q.right{border-color:var(--ok)} .q.wrong{border-color:var(--seal)}
+.fb{font-size:14px;border-radius:6px;padding:8px 12px}
+.q.right .fb{background:var(--ok-soft);color:var(--ok)}
+.q.wrong .fb{background:var(--seal-soft);color:var(--seal)}
+.form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.field .lab{font-size:13px;color:var(--muted);font-weight:500}
+.field input,.field select{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);width:100%}
+.pledge{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--bg);font-size:14px;display:flex;flex-direction:column;gap:10px}
+.pledge p{margin:0}
+.sigwrap{position:relative;border:1.5px dashed var(--muted);border-radius:8px;background:var(--paper);height:180px;touch-action:none}
+#sig{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}
+.sigwrap .hint{position:absolute;right:12px;bottom:10px;font-size:12px;color:#8a93a0;pointer-events:none}
+.sigwrap .line{position:absolute;left:24px;right:24px;bottom:42px;border-bottom:1px solid #c8ced6;pointer-events:none}
+.sigtools{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);gap:8px;flex-wrap:wrap}
+.note{border-radius:8px;padding:10px 14px;font-size:14px}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.err{background:var(--seal-soft);color:var(--seal)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:14px;position:relative}
+.receipt dl{display:grid;grid-template-columns:7em 1fr;gap:6px 12px;margin:0}
+.receipt dt{color:var(--muted);font-size:13px}
+.receipt dd{margin:0;font-variant-numeric:tabular-nums;min-width:0}
+.receipt .sigimg{background:var(--paper);border:1px solid var(--line);border-radius:6px;max-width:320px;width:100%}
+.stamp{position:absolute;top:18px;right:20px;border:2.5px solid var(--seal);color:var(--seal);font-family:var(--f-display);font-weight:700;border-radius:50%;width:72px;height:72px;display:grid;place-items:center;transform:rotate(-12deg);font-size:15px}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+@media (max-width:640px){
+  .grid3{grid-template-columns:1fr}
+  .steps .lbl small{display:none}
+  .stamp{width:58px;height:58px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow" id="eyebrow"></span>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <ol class="steps">
+    <li><button id="st1" aria-current="step"><span class="n">1</span><span class="lbl">교육 자료<small id="st1s"></small></span></button></li>
+    <li><button id="st2" disabled><span class="n">2</span><span class="lbl">확인 문제<small id="st2s"></small></span></button></li>
+    <li><button id="st3" disabled><span class="n">3</span><span class="lbl">서약 · 서명<small>제출하면 이수 완료</small></span></button></li>
+  </ol>
+
+  <div id="already" hidden></div>
+
+  <section class="panel" id="p1">
+    <p class="lead">각 항목을 읽고 아래 <b>읽었습니다</b>에 체크해 주세요. 모든 항목을 체크하면 확인 문제로 넘어갈 수 있습니다.</p>
+    <div class="list" id="mods"></div>
+    <div class="bar">
+      <span class="st" id="readSt"></span>
+      <button class="btn" id="to2" disabled>확인 문제 풀기</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p2" hidden>
+    <p class="lead">교육 내용을 확인하는 문제입니다. 틀린 문항은 해설을 보고 다시 고를 수 있습니다.</p>
+    <div class="list" id="quiz"></div>
+    <div class="bar">
+      <span class="st" id="quizSt"></span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" id="back1">교육 자료 다시 보기</button>
+        <button class="btn" id="grade">채점하기</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p3" hidden>
+    <form class="form" id="form" novalidate>
+      <h2>서약 및 서명</h2>
+      <div class="grid3">
+        <div class="field"><label for="f-org">소속 (학교·부서)</label><input id="f-org" autocomplete="organization" maxlength="60" placeholder="예: ○○초등학교 / 교무행정지원팀"></div>
+        <div class="field"><label for="f-role">직위·직종</label><select id="f-role"></select></div>
+        <div class="field"><label for="f-name">성명</label><input id="f-name" autocomplete="name" maxlength="30" placeholder="홍길동"></div>
+      </div>
+      <div class="pledge">
+        <p id="pledge"></p>
+        <label class="chk" style="color:var(--ink)"><input type="checkbox" id="f-agree"> 위 내용에 동의하고 서약합니다.</label>
+      </div>
+      <div class="field">
+        <span class="lab">서명</span>
+        <div class="sigwrap"><canvas id="sig" aria-label="서명 입력란"></canvas><div class="line"></div><span class="hint">마우스나 손가락으로 서명하세요</span></div>
+        <div class="sigtools"><span id="sigSt">서명을 입력해 주세요.</span><button type="button" class="btn ghost sm" id="sigClear">지우기</button></div>
+      </div>
+      <div id="formMsg" hidden></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button type="button" class="btn ghost" id="back2">확인 문제로</button>
+        <button type="submit" class="btn seal" id="submit">서명 제출</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" id="p4" hidden></section>
+
+  <footer>제출한 정보(소속·직위·성명·서명·제출 일시)는 연수 이수 확인과 내부결재 증빙에만 쓰이며, 담당자만 열람합니다.</footer>
+</div>
+
+<script>
+const T = window.TRAINING, MODS = T.MODULES, QUIZ = T.QUIZ;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = ms => { const d = new Date(ms), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}. ${p(d.getMonth()+1)}. ${p(d.getDate())}. ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const ls = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const DONE_KEY = "ttsign:" + T.COURSE_ID;
+const S = { step: 1, read: new Set(), answers: {}, passed: false, mine: ls.get(DONE_KEY) };
+function note(el, kind, msg){ el.className = "note " + kind; el.textContent = msg; el.hidden = !msg; }
+
+/* ---------- 머리말 ---------- */
+document.title = T.TITLE;
+$("#title").textContent = T.TITLE;
+$("#eyebrow").textContent = T.EYEBROW;
+$("#meta").innerHTML = T.META.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+$("#st1s").textContent = `${MODS.length}개 항목 읽기`;
+$("#st2s").textContent = `${QUIZ.length}문항 모두 맞히기`;
+$("#pledge").textContent = T.PLEDGE;
+$("#f-role").innerHTML = `<option value="">선택</option>` + T.ROLES.map(r => `<option>${esc(r)}</option>`).join("");
+
+/* ---------- 1단계: 교육 자료 ---------- */
+$("#mods").innerHTML = MODS.map((m, i) => `
+  <article class="mod" id="mod${i}">
+    <header><span class="no">${String(i+1).padStart(2, "0")}</span><h3>${esc(m.t)}</h3></header>
+    <ul>${m.p.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    ${m.ex ? `<div class="ex">${m.ex}</div>` : ""}
+    <label class="chk"><input type="checkbox" id="read${i}" data-i="${i}"> 읽었습니다</label>
+  </article>`).join("");
+$("#mods").addEventListener("change", e => {
+  const i = e.target.dataset.i; if (i == null) return;
+  e.target.checked ? S.read.add(+i) : S.read.delete(+i);
+  $("#mod" + i).classList.toggle("read", e.target.checked);
+  renderSteps();
+});
+
+/* ---------- 2단계: 확인 문제 ---------- */
+$("#quiz").innerHTML = QUIZ.map((q, i) => `
+  <div class="q" id="q${i}"><fieldset>
+    <legend>문 ${i+1}. ${esc(q.q)}</legend>
+    ${q.o.map((o, j) => `<label><input type="radio" name="q${i}" id="q${i}o${j}" value="${j}"><span>${esc(o)}</span></label>`).join("")}
+  </fieldset><div class="fb" hidden></div></div>`).join("");
+$("#quizSt").textContent = `${QUIZ.length}문항 중 0문항 정답`;
+$("#quiz").addEventListener("change", e => {
+  const m = /^q(\d+)$/.exec(e.target.name || ""); if (!m) return;
+  S.answers[m[1]] = +e.target.value;
+  const box = $("#q" + m[1]); box.classList.remove("right", "wrong"); box.querySelector(".fb").hidden = true;
+});
+function grade(){
+  let ok = 0;
+  QUIZ.forEach((q, i) => {
+    const box = $("#q" + i), fb = box.querySelector(".fb"), a = S.answers[i];
+    box.classList.remove("right", "wrong"); fb.hidden = false;
+    if (a == null) { box.classList.add("wrong"); fb.textContent = "답을 골라 주세요."; }
+    else if (a === q.a) { ok++; box.classList.add("right"); fb.textContent = "정답입니다. " + q.why; }
+    else { box.classList.add("wrong"); fb.textContent = "다시 생각해 보세요. " + q.why; }
+  });
+  $("#quizSt").textContent = `${QUIZ.length}문항 중 ${ok}문항 정답`;
+  S.passed = ok === QUIZ.length;
+  renderSteps();
+  if (S.passed) { $("#grade").textContent = "서약·서명으로"; $("#grade").onclick = () => go(3); }
+  else { const first = QUIZ.findIndex((q, i) => S.answers[i] !== q.a); $("#q" + first)?.scrollIntoView({ behavior: "smooth", block: "center" }); }
+}
+$("#grade").onclick = grade;
+
+/* ---------- 단계 이동 ---------- */
+function renderSteps(){
+  const allRead = S.read.size === MODS.length;
+  $("#readSt").textContent = `${S.read.size} / ${MODS.length} 항목 읽음`;
+  $("#to2").disabled = !allRead;
+  $("#st2").disabled = !allRead; $("#st3").disabled = !(allRead && S.passed);
+  $("#st1").classList.toggle("done", allRead); $("#st2").classList.toggle("done", S.passed);
+  $("#st3").classList.toggle("done", !!S.mine);
+  ["st1", "st2", "st3"].forEach((id, i) => { const b = $("#" + id); i + 1 === S.step ? b.setAttribute("aria-current", "step") : b.removeAttribute("aria-current"); });
+}
+function go(n){
+  S.step = n; ["p1", "p2", "p3", "p4"].forEach((id, i) => $("#" + id).hidden = i + 1 !== n);
+  renderSteps(); window.scrollTo({ top: 0, behavior: "smooth" });
+  if (n === 3) requestAnimationFrame(sizeSig);
+}
+$("#st1").onclick = () => go(1); $("#st2").onclick = () => go(2); $("#st3").onclick = () => go(3);
+$("#to2").onclick = () => go(2); $("#back1").onclick = () => go(1); $("#back2").onclick = () => go(2);
+
+/* ---------- 서명 패드 ---------- */
+const cv = $("#sig"), ctx = cv.getContext("2d"); let strokes = [], cur = null;
+function sizeSig(){
+  const r = cv.getBoundingClientRect(); if (!r.width) return;
+  const d = window.devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d;
+  ctx.setTransform(d, 0, 0, d, 0, 0); redraw(ctx, 1);
+}
+function pen(c, k){ c.lineWidth = 2.4 * k; c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = "#18202e"; }
+function redraw(c, k){
+  pen(c, k);
+  for (const s of strokes) { c.beginPath(); s.forEach((p, i) => i ? c.lineTo(p[0]*k, p[1]*k) : c.moveTo(p[0]*k, p[1]*k)); if (s.length === 1) c.lineTo(s[0][0]*k + .1, s[0][1]*k); c.stroke(); }
+}
+function pt(e){ const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); cur = [pt(e)]; strokes.push(cur); });
+cv.addEventListener("pointermove", e => {
+  if (!cur) return; const p = pt(e), l = cur[cur.length - 1]; cur.push(p);
+  pen(ctx, 1); ctx.beginPath(); ctx.moveTo(l[0], l[1]); ctx.lineTo(p[0], p[1]); ctx.stroke();
+});
+const endStroke = () => { if (!cur) return; cur = null; $("#sigSt").textContent = "서명이 입력되었습니다."; };
+cv.addEventListener("pointerup", endStroke); cv.addEventListener("pointercancel", endStroke);
+$("#sigClear").onclick = () => { strokes = []; sizeSig(); $("#sigSt").textContent = "서명을 입력해 주세요."; };
+if (window.ResizeObserver) new ResizeObserver(sizeSig).observe(cv);
+function sigData(){
+  const r = cv.getBoundingClientRect(), W = 480, k = W / r.width, o = document.createElement("canvas");
+  o.width = W; o.height = Math.round(r.height * k); redraw(o.getContext("2d"), k); return o.toDataURL("image/png");
+}
+function inkLen(){ let n = 0; for (const s of strokes) for (let i = 1; i < s.length; i++) n += Math.hypot(s[i][0]-s[i-1][0], s[i][1]-s[i-1][1]); return n; }
+
+/* ---------- 제출 ---------- */
+$("#form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#formMsg"), org = $("#f-org").value.trim(), role = $("#f-role").value, name = $("#f-name").value.trim();
+  if (!org || !role || !name) return note(msg, "err", "소속, 직위·직종, 성명을 모두 입력해 주세요.");
+  if (!$("#f-agree").checked) return note(msg, "err", "서약 내용에 동의 체크를 해 주세요.");
+  if (inkLen() < 40) return note(msg, "err", "서명란에 서명을 해 주세요.");
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(T.SCRIPT_URL)) return note(msg, "err", "제출 주소가 아직 설정되지 않았습니다. 담당자에게 알려 주세요. (config.js의 SCRIPT_URL)");
+  const btn = $("#submit"); btn.disabled = true; btn.textContent = "제출 중…";
+  const rec = { course: T.COURSE_ID, title: T.TITLE, org, role, name, signature: sigData(), quiz: `${QUIZ.length}/${QUIZ.length}`, agreed: true };
+  try {
+    // text/plain으로 보내야 브라우저가 사전 요청(CORS preflight) 없이 Apps Script로 보냅니다.
+    const res = await fetch(T.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(rec) });
+    const out = await res.json();
+    if (!out.ok) throw new Error(out.error || "rejected");
+    S.mine = { org, role, name, signature: rec.signature, quiz: rec.quiz, submittedAt: out.submittedAt || Date.now() };
+    ls.set(DONE_KEY, S.mine);
+    note(msg, "", ""); showReceipt();
+  } catch (err) {
+    note(msg, "err", "제출하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요. 계속 안 되면 담당자에게 알려 주세요.");
+  } finally { btn.disabled = false; btn.textContent = "서명 제출"; }
+});
+function showReceipt(){
+  const r = S.mine;
+  $("#p4").innerHTML = `<div class="note ok">서명이 제출되어 연수 이수가 완료되었습니다. 이 창을 닫아도 됩니다.</div>
+    <div class="receipt"><div class="stamp">이수</div><h2>연수 이수 확인</h2>
+    <dl><dt>연수명</dt><dd>${esc(T.TITLE)}</dd><dt>소속</dt><dd>${esc(r.org)}</dd><dt>직위·직종</dt><dd>${esc(r.role)}</dd>
+    <dt>성명</dt><dd>${esc(r.name)}</dd><dt>제출 일시</dt><dd>${fmt(r.submittedAt)}</dd><dt>확인 문제</dt><dd>${esc(r.quiz)} 정답</dd></dl>
+    <img class="sigimg" alt="제출한 서명" src="${esc(r.signature)}"></div>`;
+  go(4);
+}
+
+/* ---------- 시작 ---------- */
+renderSteps();
+if (S.mine) {
+  const a = $("#already"); a.className = "note ok"; a.hidden = false;
+  a.innerHTML = `이 기기에서 ${fmt(S.mine.submittedAt)}에 서명을 제출했습니다. 다시 제출하면 담당자 명단에는 마지막 제출이 반영됩니다. <button class="btn ghost sm" id="seeMine" style="margin-left:6px">제출 내역 보기</button>`;
+  $("#seeMine").onclick = showReceipt;
+  $("#f-org").value = S.mine.org || ""; $("#f-role").value = S.mine.role || ""; $("#f-name").value = S.mine.name || "";
+}
+</script>
+</body>
+</html>
