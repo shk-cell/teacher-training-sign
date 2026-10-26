@@ -23,7 +23,8 @@ function doPost(e) {
     const org = clean_(d.org, 60), role = clean_(d.role, 20), name = clean_(d.name, 30);
     const course = clean_(d.course, 40), title = clean_(d.title, 100), viewed = clean_(d.viewed || d.quiz, 40);
     const sig = String(d.signature || "");
-    if (!org || !role || !name || !course) return json_({ ok: false, error: "필수 항목이 비어 있습니다." });
+    // 소속·직위는 화면에서 받지 않으므로 비어 있어도 됩니다. (예전 시트와 열 순서를 맞추려고 열은 남겨 둡니다.)
+    if (!name || !course) return json_({ ok: false, error: "필수 항목이 비어 있습니다." });
     if (d.agreed !== true) return json_({ ok: false, error: "서약 동의가 없습니다." });
     if (!sig.startsWith("data:image/png;base64,") || sig.length > MAX_SIG_CHARS) return json_({ ok: false, error: "서명 이미지가 올바르지 않습니다." });
 
@@ -32,7 +33,7 @@ function doPost(e) {
     try {
       const now = new Date();
       const blob = Utilities.newBlob(Utilities.base64Decode(sig.split(",")[1]), "image/png",
-        `${course}_${org}_${name}_${Utilities.formatDate(now, "Asia/Seoul", "yyyyMMdd-HHmmss")}.png`);
+        `${course}_${name}_${Utilities.formatDate(now, "Asia/Seoul", "yyyyMMdd-HHmmss")}.png`);
       const file = folder_().createFile(blob);
       sheet_().appendRow([now, course, title, org, role, name, viewed, "동의", file.getId()]);
       return json_({ ok: true, submittedAt: now.getTime() });
@@ -79,14 +80,14 @@ function makeRoster() {
   if (t.getSelectedButton() !== ui.Button.OK) return;
   const total = parseInt(t.getResponseText(), 10) || 0;
 
-  const o = ui.prompt("서명부 만들기", "기관명을 입력하세요. (예: ○○초등학교, 비워 두면 생략)", ui.ButtonSet.OK_CANCEL);
+  const o = ui.prompt("서명부 만들기", "기관명을 입력하세요. (예: 부평중학교, 비워 두면 생략)", ui.ButtonSet.OK_CANCEL);
   if (o.getSelectedButton() !== ui.Button.OK) return;
   const orgName = o.getResponseText().trim();
 
-  // 같은 소속·성명이 여러 번 제출했으면 마지막 제출만 남깁니다.
+  // 같은 성명이 여러 번 제출했으면 마지막 제출만 남깁니다.
   const byPerson = new Map();
-  rows.filter(r => r[1] === course).forEach(r => byPerson.set(r[3] + "|" + r[5], r));
-  const list = [...byPerson.values()].sort((a, b) => String(a[3]).localeCompare(String(b[3]), "ko") || String(a[5]).localeCompare(String(b[5]), "ko"));
+  rows.filter(r => r[1] === course).forEach(r => byPerson.set(String(r[5]), r));
+  const list = [...byPerson.values()].sort((a, b) => String(a[5]).localeCompare(String(b[5]), "ko"));
   if (!list.length) return ui.alert(`연수ID '${course}'로 제출된 내용이 없습니다.`);
 
   const title = list[0][2] || course;
@@ -112,12 +113,12 @@ function makeRoster() {
   for (let i = 0; i < sum.getNumRows(); i++) sum.getCell(i, 0).setBackgroundColor("#eeeeee").setWidth(90);
   body.appendParagraph("");
 
-  const table = body.appendTable([["연번", "부서·교과", "직위·직종", "성명", "제출 일시", "서명"]]);
+  const table = body.appendTable([["연번", "성명", "제출 일시", "서명"]]);
   const head = table.getRow(0);
   for (let i = 0; i < head.getNumCells(); i++) head.getCell(i).setBackgroundColor("#eeeeee");
   list.forEach((r, i) => {
     const row = table.appendTableRow();
-    [String(i + 1), r[3], r[4], r[5], fmtTime(r[0])].forEach(v => row.appendTableCell(String(v)));
+    [String(i + 1), r[5], fmtTime(r[0])].forEach(v => row.appendTableCell(String(v)));
     const cell = row.appendTableCell("");
     try {
       const img = cell.getChild(0).asParagraph().appendInlineImage(DriveApp.getFileById(r[8]).getBlob());

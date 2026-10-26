@@ -139,11 +139,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
   <section class="panel" id="p2" hidden>
     <form class="form" id="form" novalidate>
       <h2>서약 및 서명</h2>
-      <div class="grid3">
-        <div class="field"><label for="f-org" id="orgLabel">소속</label><input id="f-org" autocomplete="organization" maxlength="60"></div>
-        <div class="field"><label for="f-role">직위·직종</label><select id="f-role"></select></div>
-        <div class="field"><label for="f-name">성명</label><input id="f-name" autocomplete="name" maxlength="30" placeholder="홍길동"></div>
-      </div>
+      <div class="field" style="max-width:320px"><label for="f-name">성명</label><input id="f-name" autocomplete="name" maxlength="30" placeholder="홍길동"></div>
       <div class="pledge">
         <p id="pledge"></p>
         <label class="chk"><input type="checkbox" id="f-agree"> 위 내용에 동의하고 서약합니다.</label>
@@ -163,7 +159,7 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 
   <section class="panel" id="p3" hidden></section>
 
-  <footer>제출한 정보(소속·직위·성명·서명·제출 일시)는 연수 이수 확인과 내부결재 증빙에만 쓰이며, 담당자만 열람합니다.</footer>
+  <footer>제출한 정보(성명·서명·제출 일시)는 연수 이수 확인과 내부결재 증빙에만 쓰이며, 담당자만 열람합니다.</footer>
 </div>
 
 <script>
@@ -180,12 +176,10 @@ function note(el, kind, msg){ el.className = "note " + kind; el.textContent = ms
 /* ---------- 머리말 ---------- */
 document.title = T.TITLE;
 $("#title").textContent = T.TITLE;
-$("#eyebrow").textContent = T.EYEBROW;
-$("#meta").innerHTML = T.META.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+$("#eyebrow").textContent = T.EYEBROW || ""; $("#eyebrow").hidden = !T.EYEBROW;
+const META = T.META || [];
+$("#meta").innerHTML = META.map(([k, v]) => `<span>${esc(k)} <b>${esc(v)}</b></span>`).join(""); $("#meta").hidden = !META.length;
 $("#pledge").textContent = T.PLEDGE;
-$("#orgLabel").textContent = T.ORG_LABEL || "소속";
-$("#f-org").placeholder = T.ORG_PLACEHOLDER || "";
-$("#f-role").innerHTML = `<option value="">선택</option>` + T.ROLES.map(r => `<option>${esc(r)}</option>`).join("");
 
 /* ---------- 1단계: PDF 한 쪽씩 보기 ---------- */
 const canvas = $("#pdf"), pctx = canvas.getContext("2d");
@@ -311,21 +305,21 @@ function inkLen(){ let n = 0; for (const s of strokes) for (let i = 1; i < s.len
 /* ---------- 제출 ---------- */
 $("#form").addEventListener("submit", async e => {
   e.preventDefault();
-  const msg = $("#formMsg"), org = $("#f-org").value.trim(), role = $("#f-role").value, name = $("#f-name").value.trim();
+  const msg = $("#formMsg"), name = $("#f-name").value.trim();
   if (!allSeen()) return note(msg, "err", "교육자료를 모든 쪽 열람한 뒤 제출할 수 있습니다.");
-  if (!org || !role || !name) return note(msg, "err", `${T.ORG_LABEL || "소속"}, 직위·직종, 성명을 모두 입력해 주세요.`);
+  if (!name) return note(msg, "err", "성명을 입력해 주세요.");
   if (!$("#f-agree").checked) return note(msg, "err", "서약 내용에 동의 체크를 해 주세요.");
   if (inkLen() < 40) return note(msg, "err", "서명란에 서명을 해 주세요.");
   if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(T.SCRIPT_URL)) return note(msg, "err", "제출 주소가 아직 설정되지 않았습니다. 담당자에게 알려 주세요. (config.js의 SCRIPT_URL)");
   const btn = $("#submit"); btn.disabled = true; btn.textContent = "제출 중…";
   const viewed = `자료 ${S.seen.size}/${S.total}쪽 열람`;
-  const rec = { course: T.COURSE_ID, title: T.TITLE, org, role, name, signature: sigData(), viewed, agreed: true };
+  const rec = { course: T.COURSE_ID, title: T.TITLE, name, signature: sigData(), viewed, agreed: true };
   try {
     // text/plain으로 보내야 브라우저가 사전 요청(CORS preflight) 없이 Apps Script로 보냅니다.
     const res = await fetch(T.SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(rec) });
     const out = await res.json();
     if (!out.ok) throw new Error(out.error || "rejected");
-    S.mine = { org, role, name, signature: rec.signature, viewed, submittedAt: out.submittedAt || Date.now() };
+    S.mine = { name, signature: rec.signature, viewed, submittedAt: out.submittedAt || Date.now() };
     ls.set(DONE_KEY, S.mine);
     note(msg, "", ""); showReceipt();
   } catch (err) {
@@ -336,7 +330,7 @@ function showReceipt(){
   const r = S.mine;
   $("#p3").innerHTML = `<div class="note ok">서명이 제출되어 연수 이수가 완료되었습니다. 이 창을 닫아도 됩니다.</div>
     <div class="receipt"><div class="stamp">이수</div><h2>연수 이수 확인</h2>
-    <dl><dt>연수명</dt><dd>${esc(T.TITLE)}</dd><dt>${esc(T.ORG_LABEL || "소속")}</dt><dd>${esc(r.org)}</dd><dt>직위·직종</dt><dd>${esc(r.role)}</dd>
+    <dl><dt>연수명</dt><dd>${esc(T.TITLE)}</dd>
     <dt>성명</dt><dd>${esc(r.name)}</dd><dt>제출 일시</dt><dd>${fmt(r.submittedAt)}</dd><dt>이수 확인</dt><dd>${esc(r.viewed || "")}</dd></dl>
     <img class="sigimg" alt="제출한 서명" src="${esc(r.signature)}"></div>`;
   go(3);
@@ -347,7 +341,7 @@ if (S.mine) {
   const a = $("#already"); a.className = "note ok"; a.hidden = false;
   a.innerHTML = `이 기기에서 ${fmt(S.mine.submittedAt)}에 서명을 제출했습니다. 다시 제출하면 담당자 명단에는 마지막 제출이 반영됩니다. <button class="btn ghost sm" id="seeMine" style="margin-left:6px">제출 내역 보기</button>`;
   $("#seeMine").onclick = showReceipt;
-  $("#f-org").value = S.mine.org || ""; $("#f-role").value = S.mine.role || ""; $("#f-name").value = S.mine.name || "";
+  $("#f-name").value = S.mine.name || "";
 }
 loadPdf();
 </script>
