@@ -12,7 +12,7 @@
 
 const SHEET_NAME = "제출";
 const FOLDER_NAME = "교사연수서명_서명이미지";
-const HEADERS = ["제출일시", "연수ID", "연수명", "소속", "직위·직종", "성명", "확인문제", "서약", "서명파일ID"];
+const HEADERS = ["제출일시", "연수ID", "연수명", "소속", "직위·직종", "성명", "이수확인", "서약", "서명파일ID"];
 const MAX_SIG_CHARS = 300000;
 
 /* ---------- 웹 앱 ---------- */
@@ -21,7 +21,7 @@ function doPost(e) {
   try {
     const d = JSON.parse(e.postData.contents);
     const org = clean_(d.org, 60), role = clean_(d.role, 20), name = clean_(d.name, 30);
-    const course = clean_(d.course, 40), title = clean_(d.title, 100), quiz = clean_(d.quiz, 10);
+    const course = clean_(d.course, 40), title = clean_(d.title, 100), viewed = clean_(d.viewed || d.quiz, 40);
     const sig = String(d.signature || "");
     if (!org || !role || !name || !course) return json_({ ok: false, error: "필수 항목이 비어 있습니다." });
     if (d.agreed !== true) return json_({ ok: false, error: "서약 동의가 없습니다." });
@@ -34,7 +34,7 @@ function doPost(e) {
       const blob = Utilities.newBlob(Utilities.base64Decode(sig.split(",")[1]), "image/png",
         `${course}_${org}_${name}_${Utilities.formatDate(now, "Asia/Seoul", "yyyyMMdd-HHmmss")}.png`);
       const file = folder_().createFile(blob);
-      sheet_().appendRow([now, course, title, org, role, name, quiz, "동의", file.getId()]);
+      sheet_().appendRow([now, course, title, org, role, name, viewed, "동의", file.getId()]);
       return json_({ ok: true, submittedAt: now.getTime() });
     } finally {
       lock.releaseLock();
@@ -102,7 +102,7 @@ function makeRoster() {
 
   const sum = body.appendTable([
     ["연수명", title],
-    ["연수 방법", "온라인 연수 (자료 학습 → 확인 문제 → 서약·서명)"],
+    ["연수 방법", "온라인 연수 (교육자료 전체 열람 후 서약·서명)"],
     ["연수 기간", period],
     ["대상", total ? `전 교직원 ${total}명` : "전 교직원"],
     ["이수 인원", `${list.length}명 (이수율 ${rate})`],
@@ -110,7 +110,7 @@ function makeRoster() {
   for (let i = 0; i < sum.getNumRows(); i++) sum.getCell(i, 0).setBackgroundColor("#eeeeee").setWidth(90);
   body.appendParagraph("");
 
-  const table = body.appendTable([["연번", "소속", "직위·직종", "성명", "제출 일시", "서명"]]);
+  const table = body.appendTable([["연번", "부서·교과", "직위·직종", "성명", "제출 일시", "서명"]]);
   const head = table.getRow(0);
   for (let i = 0; i < head.getNumCells(); i++) head.getCell(i).setBackgroundColor("#eeeeee");
   list.forEach((r, i) => {
