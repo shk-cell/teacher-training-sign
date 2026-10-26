@@ -121,8 +121,6 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
     <li><button id="st2" disabled><span class="n">2</span><span class="lbl">서약 · 서명<small>제출하면 이수 완료</small></span></button></li>
   </ol>
 
-  <div id="already" hidden></div>
-
   <section class="panel" id="p1">
     <p class="lead">교육자료를 <b>첫 쪽부터 마지막 쪽까지</b> 넘겨 보세요. 마지막 쪽까지 보면 <b>서명하러 가기</b> 버튼이 나타납니다.</p>
     <div class="viewer">
@@ -171,9 +169,10 @@ const T = window.TRAINING;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = ms => { const d = new Date(ms), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}. ${p(d.getMonth()+1)}. ${p(d.getDate())}. ${p(d.getHours())}:${p(d.getMinutes())}`; };
-const ls = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
-const DONE_KEY = "ttsign:" + T.COURSE_ID;
-const S = { step: 1, pdf: null, total: 0, page: 1, seen: new Set(), mine: ls.get(DONE_KEY) };
+// 공용 PC에서 다른 사람의 이름·서명이 보이지 않도록 기기에는 아무것도 저장하지 않습니다.
+// 예전 버전이 남긴 제출 기록이 있으면 지웁니다.
+try { Object.keys(localStorage).filter(k => k.startsWith("ttsign:")).forEach(k => localStorage.removeItem(k)); } catch {}
+const S = { step: 1, pdf: null, total: 0, page: 1, seen: new Set(), mine: null };
 const MIN_SEC = Math.max(0, +T.MIN_SECONDS_PER_PAGE || 0);
 function note(el, kind, msg){ el.className = "note " + kind; el.textContent = msg; el.hidden = !msg; }
 
@@ -325,7 +324,6 @@ $("#form").addEventListener("submit", async e => {
     const out = await res.json();
     if (!out.ok) throw new Error(out.error || "rejected");
     S.mine = { name, signature: rec.signature, viewed, submittedAt: out.submittedAt || Date.now() };
-    ls.set(DONE_KEY, S.mine);
     note(msg, "", ""); showReceipt();
   } catch (err) {
     note(msg, "err", "제출하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요. 계속 안 되면 담당자에게 알려 주세요.");
@@ -342,12 +340,6 @@ function showReceipt(){
 }
 
 /* ---------- 시작 ---------- */
-if (S.mine) {
-  const a = $("#already"); a.className = "note ok"; a.hidden = false;
-  a.innerHTML = `이 기기에서 ${fmt(S.mine.submittedAt)}에 서명을 제출했습니다. 다시 제출하면 담당자 명단에는 마지막 제출이 반영됩니다. <button class="btn ghost sm" id="seeMine" style="margin-left:6px">제출 내역 보기</button>`;
-  $("#seeMine").onclick = showReceipt;
-  $("#f-name").value = S.mine.name || "";
-}
 loadPdf();
 </script>
 </body>
