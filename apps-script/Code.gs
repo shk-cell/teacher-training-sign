@@ -58,9 +58,11 @@ function onOpen() {
 }
 
 function setup() {
+  const url = spreadsheet_().getUrl();
   sheet_();
   folder_();
-  SpreadsheetApp.getUi().alert("'제출' 시트와 드라이브의 '" + FOLDER_NAME + "' 폴더를 준비했습니다.");
+  const msg = "'제출' 시트와 드라이브의 '" + FOLDER_NAME + "' 폴더를 준비했습니다.\n제출이 기록될 시트: " + url;
+  try { SpreadsheetApp.getUi().alert(msg); } catch (err) { Logger.log(msg); }
 }
 
 function makeRoster() {
@@ -138,8 +140,25 @@ function makeRoster() {
 
 /* ---------- 내부 함수 ---------- */
 
+function spreadsheet_() {
+  // 웹 앱으로 실행될 때는 '현재 시트'가 없을 수 있어서, 시트 ID를 저장해 두고 그 ID로 엽니다.
+  const props = PropertiesService.getScriptProperties();
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) {
+    if (props.getProperty("SHEET_ID") !== active.getId()) props.setProperty("SHEET_ID", active.getId());
+    return active;
+  }
+  const id = props.getProperty("SHEET_ID");
+  if (id) {
+    try { return SpreadsheetApp.openById(id); } catch (err) { /* 시트가 지워졌으면 새로 만듭니다 */ }
+  }
+  const ss = SpreadsheetApp.create("교사연수 서명 제출");
+  props.setProperty("SHEET_ID", ss.getId());
+  return ss;
+}
+
 function sheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = spreadsheet_();
   let sh = ss.getSheetByName(SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);

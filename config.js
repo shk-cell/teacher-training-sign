@@ -3,7 +3,7 @@
 
 window.TRAINING = {
   // 구글 Apps Script 웹 앱 배포 URL (README의 2단계 참고)
-  SCRIPT_URL: "https://script.google.com/macros/s/여기에_배포_ID/exec",
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyNiW-z2zb7ojj7U88e78RGbLaermykQkx_RaD_H-NlFt11uCGjJM2Ue56gIXtYvI9l/exec",
 
   // 연수 회차 구분값. 다음 연수 때 바꾸면 "이미 제출함" 표시가 초기화되고, 서명부도 따로 만들어집니다.
   COURSE_ID: "2026-bupyeong-security",
