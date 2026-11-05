@@ -13,6 +13,7 @@ import socket
 import sqlite3
 import threading
 import time
+from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -23,6 +24,7 @@ from paths import ROOT, RESOURCES
 
 SUPPORTED = {".pdf", ".png", ".jpg", ".jpeg"}
 DEFAULT_PLEDGE = "본인은 연수자료를 모두 열람하였으며, 교육 내용을 이해하고 실천할 것을 확인합니다."
+RENDER_CACHE_BYTES = 128 * 1024 * 1024
 
 
 def create_app(base: Path = ROOT, password: str | None = None):
@@ -64,13 +66,16 @@ def create_app(base: Path = ROOT, password: str | None = None):
         """)
 
     lock = threading.RLock()
-    state = {"at": 0, "manifest": {}, "stats": {}}
+    state = {"at": 0, "manifest": {}, "stats": {}, "rendered_bytes": 0}
+    # 같은 쪽을 여러 사람이 열어도 한 번만 그리도록 자료 내용 해시 기준으로 보관합니다.
+    rendered = OrderedDict()
 
     def scan(force=False):
         with lock:
             if not force and time.monotonic() - state["at"] < 1:
                 return
-            groups = []
+            materials.mkdir(parents=True, exist_ok=True)
+            groups, stats = [], {}
             for p in sorted(materials.iterdir(), key=lambda p: p.name.casefold()):
                 if p.is_symlink():
                     continue
@@ -101,10 +106,10 @@ def create_app(base: Path = ROOT, password: str | None = None):
                                     if count < 1:
                                         raise ValueError("빈 자료입니다")
                                 cached = (hashlib.sha256(content).hexdigest(), count)
-                                state["stats"][key] = cached
+                            stats[key] = cached
                             digest, count = cached
                             fingerprint.update((f.name + digest).encode())
-                            entries.extend((f, i) for i in range(count))
+                            entries.extend((f, i, digest) for i in range(count))
                         except Exception:
                             error = f"{f.name}: 자료를 읽을 수 없습니다. 암호 설정이나 파일 손상 여부를 확인해 주세요."
                             fingerprint.update((f.name + "error").encode())
@@ -113,9 +118,9 @@ def create_app(base: Path = ROOT, password: str | None = None):
                         VALUES(?,?,?,?,?,1,?,?) ON CONFLICT(id) DO UPDATE SET
                         active=1,revision=excluded.revision,pages=excluded.pages,error=excluded.error""",
                         (cid, source, title, DEFAULT_PLEDGE, revision, len(entries), error))
-                    manifests[cid] = entries
+                    manifests[cid] = (revision, entries)
                 con.execute("DELETE FROM readers WHERE expires < ?", (time.time(),))
-            state["manifest"] = manifests
+            state["manifest"], state["stats"] = manifests, stats
             state["at"] = time.monotonic()
 
     def admin():
@@ -133,6 +138,8 @@ def create_app(base: Path = ROOT, password: str | None = None):
                 abort(403, "다른 사이트에서 보낸 요청입니다.")
             if not request.is_json:
                 abort(415, "JSON 요청이 필요합니다.")
+            if not isinstance(request.get_json(silent=True), dict):
+                abort(400, "요청 형식이 올바르지 않습니다.")
 
     @app.after_request
     def headers(response):
@@ -209,17 +216,29 @@ def create_app(base: Path = ROOT, password: str | None = None):
         if not 1 <= number <= min(r["seen"] + 1, c["pages"]):
             abort(403, "첫 쪽부터 순서대로 열람해 주세요.")
         with lock:
-            path, page_index = state["manifest"][c["id"]][number - 1]
-            # 수정 직후의 파일과 이전 버전의 열람 기록이 섞이지 않게 다시 확인합니다.
-            content = path.read_bytes()
-            scan(force=True)
-            current = course(c["id"])
-            if current["revision"] != c["revision"]:
+            revision, entries = state["manifest"].get(c["id"], ("", []))
+            if revision != r["revision"]:
                 abort(409, "자료가 변경되었습니다. 연수를 다시 열어 주세요.")
-        with pymupdf.open(stream=content, filetype=path.suffix[1:]) as doc:
-            p = doc[page_index]
-            scale = min(1.7, 1600 / max(p.rect.width, p.rect.height))
-            png = p.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False).tobytes("png")
+            path, page_index, digest = entries[number - 1]
+            key = (digest, page_index)
+            png = rendered.get(key)
+            if png is not None:
+                rendered.move_to_end(key)
+        if png is None:
+            content = path.read_bytes()
+            # 수정 직후의 파일과 이전 버전의 열람 기록이 섞이지 않게 내용으로 확인합니다.
+            if hashlib.sha256(content).hexdigest() != digest:
+                abort(409, "자료가 변경되었습니다. 연수를 다시 열어 주세요.")
+            with pymupdf.open(stream=content, filetype=path.suffix[1:]) as doc:
+                p = doc[page_index]
+                scale = min(1.7, 1600 / max(p.rect.width, p.rect.height))
+                png = p.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False).tobytes("png")
+            with lock:
+                if key not in rendered:
+                    rendered[key] = png
+                    state["rendered_bytes"] += len(png)
+                while state["rendered_bytes"] > RENDER_CACHE_BYTES:
+                    state["rendered_bytes"] -= len(rendered.popitem(last=False)[1])
         return send_file(io.BytesIO(png), mimetype="image/png")
 
     @app.post("/api/pages/<token>/<int:number>/read")
@@ -276,6 +295,22 @@ def create_app(base: Path = ROOT, password: str | None = None):
         return jsonify(ok=True, id=saved["id"], submittedAt=saved["submitted_at"])
 
     attempts = {}
+    links = {}
+
+    def admin_link():
+        """프로그램 창의 버튼이 비밀번호 입력 없이 로그인하도록 2분간 한 번 쓰는 토큰."""
+        now = time.time()
+        for token in [t for t, expires in links.items() if expires < now]:
+            links.pop(token, None)
+        token = secrets.token_urlsafe(32)
+        links[token] = now + 120
+        return token
+
+    def material_summary():
+        scan()
+        with db() as con:
+            rows = con.execute("SELECT title,pages,error FROM courses WHERE active=1 ORDER BY source").fetchall()
+        return [dict(r) for r in rows]
 
     @app.post("/api/admin/login")
     def login():
@@ -285,9 +320,15 @@ def create_app(base: Path = ROOT, password: str | None = None):
         history = [t for t in attempts.get(request.remote_addr, []) if now - t < 60]
         if len(history) >= 10:
             abort(429, "잠시 후 다시 시도해 주세요.")
-        if not secrets.compare_digest(str(request.get_json().get("password", "")), app.config["ADMIN_PASSWORD"]):
+        body = request.get_json()
+        link = str(body.get("link", ""))
+        if link:
+            if links.pop(link, 0) < now:
+                attempts[request.remote_addr] = history + [now]
+                abort(401, "로그인 링크가 만료되었습니다. 프로그램 창에서 [관리자 화면 열기]를 다시 눌러 주세요.")
+        elif not secrets.compare_digest(str(body.get("password", "")), app.config["ADMIN_PASSWORD"]):
             attempts[request.remote_addr] = history + [now]
-            abort(401, "비밀번호가 일치하지 않습니다. 서버 실행 창에서 확인해 주세요.")
+            abort(401, "비밀번호가 일치하지 않습니다. 프로그램 창에서 확인해 주세요.")
         session.clear()
         session["admin"] = True
         return jsonify(ok=True)
@@ -414,6 +455,7 @@ def create_app(base: Path = ROOT, password: str | None = None):
                          mimetype="application/hwp+zip" if kind == "hwpx" else None)
 
     app.scan_materials = scan
+    app.admin_link, app.material_summary = admin_link, material_summary
     return app
 
 

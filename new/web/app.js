@@ -11,11 +11,20 @@ function show(id) {
   notify('');
   window.scrollTo({top:0,behavior:'instant'});
 }
+async function request(url, options) {
+  let response;
+  try { response = await fetch(url, options); }
+  catch { throw Error('서버에 연결하지 못했습니다. 서버 실행 상태와 학교 네트워크 연결을 확인해 주세요.'); }
+  if (!response.ok) {
+    // 서버 앞단에서 막힌 요청은 JSON이 아닐 수 있습니다.
+    const data = await response.json().catch(() => ({}));
+    throw Error(data.error || '요청을 처리하지 못했습니다.');
+  }
+  return response;
+}
 async function api(url, body) {
-  const response = await fetch(url, body === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error || '요청을 처리하지 못했습니다.');
-  return data;
+  const response = await request(url, body === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return response.json();
 }
 function handle(error) { notify(error.message || '서버에 연결하지 못했습니다. 서버 실행 상태를 확인해 주세요.'); }
 async function catalog() {
@@ -76,8 +85,7 @@ async function displayPage(number) {
   $('#page-stage').setAttribute('aria-busy','true');
   notify('');
   try {
-    const response = await fetch(`/api/pages/${training.token}/${number}`);
-    if (!response.ok) throw Error((await response.json()).error);
+    const response = await request(`/api/pages/${training.token}/${number}`);
     const blob = await response.blob();
     if (objectURL) URL.revokeObjectURL(objectURL);
     objectURL = URL.createObjectURL(blob);
@@ -191,4 +199,15 @@ $('#admin-courses').onsubmit = async e => {
   catch(e) { handle(e); }
   finally { button.disabled = false; }
 };
-if (location.pathname === '/admin') { show('admin'); loadAdmin(); } else { catalog(); }
+async function openAdmin() {
+  show('admin');
+  const link = new URLSearchParams(location.hash.slice(1)).get('link');
+  if (link) {
+    // 프로그램 창의 [관리자 화면 열기]로 들어온 일회용 링크입니다.
+    history.replaceState(null, '', '/admin');
+    try { await api('/api/admin/login', {link}); }
+    catch(e) { $('#login-form').hidden = false; $('#admin-content').hidden = true; return handle(e); }
+  }
+  await loadAdmin();
+}
+if (location.pathname === '/admin') { openAdmin(); } else { catalog(); }

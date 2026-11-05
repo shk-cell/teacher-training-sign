@@ -26,6 +26,7 @@ class LocalServer:
     def __init__(self, base: Path = ROOT):
         self.base = Path(base)
         self.server = None
+        self.app = None
         self.thread = None
         self.password = ""
         self.port = None
@@ -70,7 +71,7 @@ class LocalServer:
             self.connections.clear()
             listener.close()
             raise
-        self.server, self.password, self.port = server, password, port
+        self.server, self.app, self.password, self.port = server, app, password, port
         self.stopping, self.failure = False, None
 
         def serve():
@@ -99,7 +100,7 @@ class LocalServer:
                     pass
             if self.thread is not None:
                 self.thread.join(timeout=2)
-            self.server, self.thread = None, None
+            self.server, self.app, self.thread = None, None, None
             self.password, self.port = "", None
 
 
@@ -119,11 +120,15 @@ class DesktopApp:
         self.password = tk.StringVar()
         self.reveal = tk.BooleanVar()
         self.feedback = tk.StringVar()
+        self.admin_address = tk.StringVar(value="서버를 시작하면 관리자 주소가 표시돼요.")
+        self.materials = tk.StringVar(value="서버를 시작하면 자료 상태가 표시돼요.")
+        self.checking = False
 
         build_window(self, root)
         self.update_controls()
         self.root.after(120, self.poll)
         self.root.after(250, self.start)
+        self.root.after(4000, self.watch_materials)
 
     def callback_error(self, kind, value, traceback):
         logging.error("화면 처리 오류", exc_info=(kind, value, traceback))
@@ -194,14 +199,56 @@ class DesktopApp:
 
         threading.Thread(target=work, daemon=True).start()
 
+    def check_materials(self):
+        """콘솔 창 없이도 자료 상태를 볼 수 있도록 창에 표시합니다."""
+        if self.state != "running" or self.checking:
+            return
+        self.checking = True
+        app = self.controller.app
+
+        def work():
+            try:
+                self.events.put(("materials", app.material_summary()))
+            except Exception:
+                logging.exception("자료 확인 오류")
+                self.events.put(("materials", None))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def watch_materials(self):
+        self.check_materials()
+        self.root.after(4000, self.watch_materials)
+
+    def show_materials(self, courses):
+        if courses is None:
+            self.materials.set("자료 상태를 확인하지 못했어요.\n자세한 기록: data/server.log")
+            return
+        if not courses:
+            self.materials.set("아직 등록된 자료가 없어요.")
+            return
+        errors = [c for c in courses if c["error"]]
+        lines = [f"등록된 연수 {len(courses)}개" + (f" · 확인 필요 {len(errors)}개" if errors else "")]
+        # 열 수 없는 자료를 먼저 보여 줍니다.
+        for c in (errors + [c for c in courses if not c["error"]])[:4]:
+            lines.append(f"⚠ {c['title']} — 열 수 없음 (암호·손상 확인)" if c["error"] else f"• {c['title']} ({c['pages']}쪽)")
+        if len(courses) > 4:
+            lines.append(f"외 {len(courses) - 4}개")
+        self.materials.set("\n".join(lines))
+
     def poll(self):
         try:
             while True:
                 event, value = self.events.get_nowait()
-                if event == "started":
+                if event == "materials":
+                    self.checking = False
+                    if self.state == "running":
+                        self.show_materials(value)
+                elif event == "started":
                     self.state = "running"
                     self.status.set("연수 참여를 받을 준비가 됐어요")
-                    self.detail.set("주소를 공유한 뒤 이 창을 열어 두세요.")
+                    self.detail.set("주소를 공유한 뒤 이 창을 열어 두세요. 다른 PC에서 접속이 안 되면 Windows 방화벽에서 교직원연수실을 허용해 주세요.")
+                    self.admin_address.set(f"관리자 주소: http://localhost:{self.controller.port}/admin")
+                    self.check_materials()
                     self.address_box.configure(values=value)
                     self.address.set(value[0] if value else "학교 네트워크 연결을 확인해 주세요")
                     self.password.set(self.controller.password)
@@ -217,6 +264,8 @@ class DesktopApp:
                     self.address.set("서버를 시작하면 주소가 표시됩니다")
                     self.password.set("")
                     self.feedback.set("")
+                    self.admin_address.set("서버를 시작하면 관리자 주소가 표시돼요.")
+                    self.materials.set("서버를 시작하면 자료 상태가 표시돼요.")
                     self.update_controls()
                     if event == "error" and not self.closing:
                         messagebox.showerror("서버 시작 실패", f"서버를 시작하지 못했습니다.\n\n{value}\n\n자세한 기록: {ROOT / 'data' / 'server.log'}", parent=self.root)
@@ -238,8 +287,13 @@ class DesktopApp:
         self.feedback.set(message)
 
     def open_browser(self, admin):
-        if self.state == "running":
-            webbrowser.open(f"http://localhost:{self.controller.port}" + ("/admin" if admin else "/"))
+        if self.state != "running":
+            return
+        url = f"http://localhost:{self.controller.port}/"
+        if admin:
+            # 일회용 링크로 비밀번호 없이 로그인합니다. # 뒤의 값은 서버 접속 기록에 남지 않습니다.
+            url += "admin#link=" + self.controller.app.admin_link()
+        webbrowser.open(url)
 
     def open_folder(self, name):
         folder = ROOT / name

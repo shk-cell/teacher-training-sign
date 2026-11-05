@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pymupdf
 from PIL import Image, ImageDraw
@@ -95,6 +96,46 @@ class TrainingTests(unittest.TestCase):
         self.pdf(path, 3)
         self.client.get('/api/courses')
         self.assertEqual(self.client.get(f'/api/pages/{token}/1').status_code, 409)
+
+    def test_same_page_is_rendered_once_for_many_readers(self):
+        _, first = self.start()
+        _, second = self.start()
+        with patch('server.pymupdf.open', wraps=pymupdf.open) as opened:
+            images = [self.client.get(f'/api/pages/{token}/1').data for token in (first, second)]
+        self.assertEqual(opened.call_count, 1)
+        self.assertEqual(images[0], images[1])
+
+    def test_file_changed_before_rescan_is_not_served(self):
+        _, token = self.start()
+        path = self.materials / '정보보안.pdf'
+        path.unlink()
+        self.pdf(path, 2)
+        path.write_bytes(path.read_bytes() + b'\n%changed')
+        self.assertEqual(self.client.get(f'/api/pages/{token}/1').status_code, 409)
+
+    def test_missing_material_folder_is_recreated(self):
+        self.materials.rename(self.root / 'moved')
+        self.assertEqual(self.client.get('/api/courses').get_json(), [])
+        self.assertTrue(self.materials.is_dir())
+
+    def test_admin_link_logs_in_once(self):
+        link = self.app.admin_link()
+        self.assertEqual(self.client.post('/api/admin/login', json={'link': link}, environ_overrides={'REMOTE_ADDR': '192.168.1.50'}).status_code, 403)
+        self.assertEqual(self.client.post('/api/admin/login', json={'link': link}).status_code, 200)
+        self.assertEqual(self.client.get('/api/admin/data').status_code, 200)
+        other = self.app.test_client()
+        self.assertEqual(other.post('/api/admin/login', json={'link': link}).status_code, 401)
+        self.assertEqual(other.post('/api/admin/login', json={'link': 'guess'}).status_code, 401)
+
+    def test_material_summary_reports_unreadable_files(self):
+        (self.materials / '암호.pdf').write_bytes(b'broken pdf')
+        summary = {c['title']: c for c in self.app.material_summary()}
+        self.assertEqual(summary['정보보안']['pages'], 2)
+        self.assertTrue(summary['암호']['error'])
+
+    def test_non_object_json_is_rejected(self):
+        self.assertEqual(self.client.post('/api/submit', json=['token']).status_code, 400)
+        self.assertEqual(self.client.post('/api/admin/login', json='password').status_code, 400)
 
     def test_admin_is_local_and_private(self):
         cid, _ = self.start()

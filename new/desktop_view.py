@@ -162,7 +162,8 @@ def build_window(app, root):
         panel.grid_rowconfigure(3, weight=1)
     label(materials, "01  연수자료 준비", size=19, bold=True).grid(row=0, column=0, sticky="w", padx=22, pady=(19, 9))
     label(materials, "자료 폴더에 파일을 넣어 주세요.", size=15, color="#556273").grid(row=1, column=0, sticky="w", padx=22)
-    label(materials, "PDF·PNG 변경이 자동으로 반영돼요.\n여러 장은 한 폴더에 묶어 주세요.", size=13, color=MUTED, justify="left").grid(row=2, column=0, sticky="w", padx=22, pady=(7, 12))
+    label(materials, "PDF·PNG 변경이 자동으로 반영돼요.\n여러 장은 한 폴더에 묶어 주세요.", size=13, color=MUTED, justify="left").grid(row=2, column=0, sticky="w", padx=22, pady=(7, 8))
+    label(materials, size=13, color="#3F5A50", textvariable=app.materials, justify="left", wraplength=360).grid(row=3, column=0, sticky="nw", padx=22, pady=(0, 12))
     button(materials, "자료 폴더 열기", lambda: app.open_folder("연수자료"),
            image=icon("folder", "#475565")).grid(row=4, column=0, sticky="ew", padx=22, pady=(0, 20))
 
@@ -182,7 +183,8 @@ def build_window(app, root):
     app.password_entry.grid(row=0, column=0, sticky="ew", padx=(0, 7))
     app.password_copy = button(password_row, "복사", lambda: app.copy(app.password.get(), "관리자 비밀번호를 복사했습니다."), width=58)
     app.password_copy.grid(row=0, column=1)
-    label(admin, "위 비밀번호로 관리자 화면에 로그인해요.", size=13, color=MUTED).grid(row=2, column=0, sticky="w", padx=22, pady=(8, 12))
+    label(admin, "아래 버튼을 누르면 바로 로그인돼요.\n비밀번호는 주소로 직접 접속할 때만 필요해요.", size=13, color=MUTED, justify="left").grid(row=2, column=0, sticky="w", padx=22, pady=(8, 4))
+    label(admin, size=12, color=MUTED, textvariable=app.admin_address).grid(row=3, column=0, sticky="nw", padx=22, pady=(0, 12))
     app.admin_button = button(admin, "관리자 화면 열기  ↗", lambda: app.open_browser(True), primary=True)
     app.admin_button.grid(row=4, column=0, sticky="ew", padx=22, pady=(0, 20))
 
