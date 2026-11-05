@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import socket
@@ -18,8 +19,8 @@ from zoneinfo import ZoneInfo
 
 import pymupdf
 from flask import Flask, abort, jsonify, request, send_file, session
+from paths import ROOT, RESOURCES
 
-ROOT = Path(__file__).resolve().parent
 SUPPORTED = {".pdf", ".png", ".jpg", ".jpeg"}
 DEFAULT_PLEDGE = "본인은 연수자료를 모두 열람하였으며, 교육 내용을 이해하고 실천할 것을 확인합니다."
 
@@ -153,13 +154,19 @@ def create_app(base: Path = ROOT, password: str | None = None):
     @app.get("/")
     @app.get("/admin")
     def index():
-        return send_file(ROOT / "web" / "index.html")
+        return send_file(RESOURCES / "web" / "index.html")
 
     @app.get("/assets/<name>")
     def assets(name):
         if name not in {"app.js", "style.css"}:
             abort(404)
-        return send_file(ROOT / "web" / name)
+        return send_file(RESOURCES / "web" / name)
+
+    @app.get("/assets/fonts/<name>")
+    def font_asset(name):
+        if name not in {"Maplestory Light.ttf", "Maplestory Bold.ttf"}:
+            abort(404)
+        return send_file(RESOURCES / "assets" / "fonts" / name, mimetype="font/ttf")
 
     @app.get("/api/courses")
     def courses():
@@ -326,7 +333,7 @@ def create_app(base: Path = ROOT, password: str | None = None):
     @app.get("/api/admin/export/<cid>/<kind>")
     def export(cid, kind):
         admin()
-        if kind not in {"xlsx", "docx"}:
+        if kind not in {"xlsx", "docx", "hwpx"}:
             abort(404)
         with db() as con:
             c = con.execute("SELECT * FROM courses WHERE id=?", (cid,)).fetchone()
@@ -334,7 +341,10 @@ def create_app(base: Path = ROOT, password: str | None = None):
         if not c:
             abort(404)
         out = io.BytesIO()
-        if kind == "xlsx":
+        if kind == "hwpx":
+            from signature_book import make_signature_book
+            out.write(make_signature_book(c["title"], rows))
+        elif kind == "xlsx":
             from openpyxl import Workbook
             from openpyxl.drawing.image import Image
             from openpyxl.styles import Alignment, Font, PatternFill
@@ -399,7 +409,9 @@ def create_app(base: Path = ROOT, password: str | None = None):
                 doc.add_paragraph(f"{i}. {r['name']} · {r['title']} · {r['pages']}쪽 · 자료 {r['revision'][:12]}\n{r['pledge']}")
             doc.save(out)
         out.seek(0)
-        return send_file(out, as_attachment=True, download_name=f"연수서명부_{cid[:8]}.{kind}")
+        safe_title = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", c["title"]).strip(" .")[:100] or "연수"
+        return send_file(out, as_attachment=True, download_name=f"{safe_title}_서명부.{kind}",
+                         mimetype="application/hwp+zip" if kind == "hwpx" else None)
 
     app.scan_materials = scan
     return app

@@ -152,6 +152,27 @@ class TrainingTests(unittest.TestCase):
         self.assertEqual(self.client.post(f'/api/admin/courses/{cid}', json={'title':'제목 변경','pledge':'동의 내용 변경'}).status_code, 200)
         self.assertEqual(self.client.get(f'/api/pages/{token}/1').status_code, 403)
 
+    def test_hwpx_export_is_private_and_contains_saved_signature(self):
+        cid, token = self.start()
+        self.assertEqual(self.client.get(f'/api/admin/export/{cid}/hwpx').status_code, 401)
+        self.read(token)
+        self.assertEqual(self.submit(token).status_code, 200)
+        self.login()
+        result = self.client.get(f'/api/admin/export/{cid}/hwpx')
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.mimetype, 'application/hwp+zip')
+        self.assertIn('_', result.headers['Content-Disposition'])
+        with zipfile.ZipFile(io.BytesIO(result.data)) as package:
+            xml = package.read('Contents/section0.xml').decode()
+            self.assertIn('홍길동', xml)
+            self.assertIn('pic', xml)
+
+    def test_bundled_fonts_are_served_but_other_files_are_not(self):
+        for name in ['Light', 'Bold']:
+            with self.client.get(f'/assets/fonts/Maplestory%20{name}.ttf') as result:
+                self.assertEqual(result.status_code, 200)
+        self.assertEqual(self.client.get('/assets/fonts/other.ttf').status_code, 404)
+
     def test_bad_pdf_is_visible_but_cannot_be_opened(self):
         (self.materials / '정보보안.pdf').write_bytes(b'broken pdf')
         courses = self.client.get('/api/courses').get_json()

@@ -2,3 +2,6 @@
 __pycache__/
 data/
 *.pyc
+new/build/
+new/교직원연수실.exe
+new/교직원연수실_배포용.zip
